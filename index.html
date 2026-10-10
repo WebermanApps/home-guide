@@ -187,6 +187,27 @@ footer{color:var(--mute)}
 .btn,.call,.addall{background:#fff!important;color:#171717!important;border:1px solid #171717!important}
 .chip.on,.seg button.on,.who.pro,.now{background:#F3EDE2!important;color:#0a0a0a!important;border:1px solid #171717!important}
 nav.tabs a.on{box-shadow:inset 0 -2px 0 #171717}
+
+/* Condensed accordion rows */
+.accbar{display:flex;gap:8px;justify-content:flex-end;margin:4px 0 10px}
+.accbar button{min-height:36px;padding:0 12px;background:#fff;border:1px solid #171717;color:#171717;font:700 11px hind,Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase;border-radius:0;cursor:pointer}
+.acc{background:#fff;border:1px solid var(--line);margin:0 0 -1px}
+.acc>.ah{all:unset;box-sizing:border-box;width:100%;min-height:52px;display:grid;grid-template-columns:1fr auto 18px;align-items:center;gap:10px;padding:10px 14px;cursor:pointer}
+.acc>.ah:focus-visible{outline:2px solid #171717;outline-offset:-2px}
+.acc .at{font-weight:700;font-size:15px;line-height:1.25;color:var(--ink)}
+.acc .am{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;max-width:42vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.acc .ch{width:10px;height:10px;border-right:2px solid #171717;border-bottom:2px solid #171717;transform:rotate(45deg) translateY(-3px);transition:transform .25s cubic-bezier(.2,.8,.2,1);justify-self:center}
+.acc.open .ch{transform:rotate(225deg) translateY(-1px)}
+.acc>.ab{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s cubic-bezier(.2,.8,.2,1)}
+.acc.open>.ab{grid-template-rows:1fr}
+.acc>.ab>div{overflow:hidden;padding:0 14px}
+.acc.open>.ab>div{padding-bottom:12px}
+.acc.open{background:#FDFBF7}
+.acc .kv{margin:0}
+.acc .call{margin:6px 6px 0 0}
+.accg{margin-bottom:14px}
+.acc.flash{box-shadow:inset 3px 0 0 #171717}
+@media(min-width:700px){.acc .am{max-width:300px}}
 @media print{header.top,.chips,.search,nav.tabs{display:none}}
 </style></head><body>
 <header class="top"><div class="wrap"><button class="back" id="back" aria-label="Back">‹ Back</button><div class="ttl" id="ttl"></div><a class="wm" id="wm" href="#/" aria-label="Max Weberman, home">Max Weberman</a></div></header>
@@ -250,6 +271,11 @@ function rowsCards(sec,rows,opt={}){
     reg(sec,id,r[0],r.join(' '));});
   return o;
 }
+function acc(sec,title,meta,body,searchText){const id=ID();reg(sec,id,txt(title),searchText||txt(title)+' '+txt(body));
+  return `<div class="acc" id="${id}"><button class="ah mw-hover" type="button" aria-expanded="false"><span class="at">${title}</span><span class="am">${meta||''}</span><span class="ch" aria-hidden="true"></span></button><div class="ab" role="region"><div>${body}</div></div></div>`}
+function accBar(){return `<div class="accbar"><button class="mw-hover" data-accall="1">Expand All</button><button class="mw-hover" data-accall="0">Collapse All</button></div>`}
+function accRows(sec,rows,metaCol,metaFn){const hd=rows[0].map(txt);return rows.slice(1).map(r=>{let kv='';r.slice(1).forEach((c,i)=>{if(c&&c!=='—'&&c!=='\u2014'&&!(i+1==metaCol&&!metaFn))kv+=`<dt>${esc(hd[i+1])}</dt><dd>${link(c)}</dd>`});
+  const meta=metaFn?metaFn(r):txt(link(r[metaCol]||''));const full=txt(link(r[0]));const pm=full.match(/^(.*?)\s*\((.+)\)\s*$/);if(pm&&sec=='equip'){kv=`<dt>Details</dt><dd>${esc(pm[2])}</dd>`+kv;return acc(sec,esc(pm[1]),esc(meta),`<dl class="kv">${kv}</dl>`,r.join(' '))}return acc(sec,link(r[0]),esc(meta),kv?`<dl class="kv">${kv}</dl>`:'',r.join(' '))}).join('')}
 function chips(list){return `<div class="chips">${list.map(([k,l],i)=>`<button class="chip${i==0?' on':''}" data-k="${k}">${l}</button>`).join('')}</div>`}
 // ---- emergencies data
 const EMS=[];{let cur=null;for(const x of D.call){if(x.k=='h3'){cur={t:x.t,s:[]};EMS.push(cur)}else if(cur&&x.k=='p'&&x.s=='es')cur.s.push(x.t.replace(/^\d+\.\s*/,''))}}
@@ -271,23 +297,23 @@ R.call=()=>{const b=D.call;let o='';
   o+=`<div class="card hl" id="${id}"><div class="t">Call Max First</div><div style="margin-top:6px">${link(box.c[1].t)}</div>
   <div class="acts"><a class="call" href="tel:+12485059956">📞 Call Mobile</a><a class="call sm" href="tel:+12489325800">📞 Office</a><a class="call sm" href="mailto:max@webermanconstruction.com">✉️ Email</a></div></div>`;
   reg('call',id,'Max Weberman, Weberman Construction LLC',box.c.map(x=>x.t).join(' '));
-  o+=`<a class="card warn" href="#/emerg" style="display:block;text-decoration:none;color:inherit"><div class="t">🚨 Emergencies ›</div><div class="note" style="margin:4px 0 0">Gas smell, water leak, no heat, electrical, sump pump.</div></a>`;
+  o+=`<a class="card warn" href="#/emerg" style="display:block;text-decoration:none;color:inherit"><div class="t">🚨 Emergencies ›</div><div class="note" style="margin:4px 0 0">Gas smell, water leak, no heat, electrical, sump pump.</div></a>`+accBar();
   let tb=0;
   for(const x of b){
     if(x.k=='h2'&&x.t!='Emergencies'){o+=`<h3 class="grp">${x.t}</h3>`;}
-    else if(x.k=='tbl'){x.rows.slice(1).forEach(r=>{const id=ID();const ph=phones(r[2]);
-      o+=`<div class="card" id="${id}"><div class="note" style="margin:0 0 2px">${r[0]}</div><div class="t">${link(r[1])}</div>${ph.length?`<a class="call" href="tel:+1${ph[0][1]}${ph[0][2]}${ph[0][3]}">📞 ${r[2]}</a>`:`<div class="note" style="margin-top:6px">${link(r[2])}</div>`}</div>`;
-      reg('call',id,r[0],r.join(' '));});}
+    else if(x.k=='tbl'){o+=x.rows.slice(1).map(r=>{const ph=phones(r[2]);const co=txt(link(r[1])).replace(/\s*\(.*$/,'');const who=(txt(link(r[1])).match(/\((.*)\)/)||[])[1];
+      const body=`<div class="note" style="margin:0 0 4px">${link(r[0])}</div>${who?`<div>${esc(who)}</div>`:''}${ph.length?`<a class="call" href="tel:+1${ph[0][1]}${ph[0][2]}${ph[0][3]}">📞 ${r[2]}</a>`:`<div class="note" style="margin-top:6px">${link(r[2])}</div>`}`;
+      return acc('call',esc(co),esc(txt(r[0]).split(/[,:(]/)[0]),body,r.join(' '))}).join('')}
   }
   return o;};
-R.shutoffs=()=>rowsCards('shutoffs',SHUT);
+R.shutoffs=()=>accBar()+accRows('shutoffs',SHUT,1);
 R.equip=()=>{const b=D.equip;let o='',groups=[];
   const intro=b.find(x=>x.k=='p');o+=`<p class="intro">${link(intro.t)}</p>`;
   let body='';let g=0;
   b.forEach((x,i)=>{if(x.k=='h2'){g++;groups.push(x.t);body+=`<h3 class="grp" id="g${g}">${x.t}</h3>`}
-    else if(x.k=='tbl')body+=rowsCards('equip',x.rows,{});
+    else if(x.k=='tbl')body+=accRows('equip',x.rows,3,r=>{const w=txt(link(r[3]||''));return w&&!/confirm/i.test(w)?w:txt(link(r[1]||''))});
     else if(x.k=='p'&&i>1){if(x.s=='fvn')body+=`<div class="note">${x.t}</div>`;else{const id=ID();body+=`<div class="card" id="${id}">${link(x.t)}</div>`;reg('equip',id,'Equipment',x.t)}}});
-  return o+`<div class="chips">${groups.map((t,i)=>`<button class="chip" data-jump="g${i+1}">${t}</button>`).join('')}</div>`+body;};
+  return o+accBar()+`<div class="chips">${groups.map((t,i)=>`<button class="chip" data-jump="g${i+1}">${t}</button>`).join('')}</div>`+body;};
 // ---- maintenance + calendar
 const SEASON={Winter:['December','January','February'],Spring:['March','April','May'],Summer:['June','July','August'],Fall:['September','October','November']};
 const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -299,9 +325,10 @@ R.maint=()=>{const b=D.maint;let o='';
   o+=`<p class="intro"><span class="who">You</span> do it yourself &nbsp; <span class="who pro">Pro</span> call a pro</p>`;
   const now=MN[new Date().getMonth()];
   const tasks=(rows,m)=>rows.map(r=>{const pro=/Pro/.test(r.w)&&!/You/.test(r.w);const k=TASKS.push({...r,m})-1;
-    return `<div class="task"><span class="who${pro?' pro':''}">${r.w}</span><div>${link(esc(r.t))}</div><button class="rem" data-task="${k}" aria-label="Remind me">🔔 Remind Me</button></div>`}).join('');
+    const head=r.t.split(/(?<=[.!?])\s/)[0].replace(/[.:]$/,'');const when=m=='every'?'Monthly':m;
+    return acc('maint',esc(head.length>70?head.slice(0,68)+'…':head),`${when} · ${pro?'Pro':'You'}`,`<p style="margin:0 0 8px">${link(esc(r.t))}</p><div style="display:flex;gap:8px;align-items:center"><span class="who${pro?' pro':''}">${r.w}</span><button class="rem mw-hover" data-task="${k}" aria-label="Remind me">🔔 Remind Me</button></div>`,r.t)}).join('');
   let notes='';b.forEach(x=>{if(x.k=='li')notes+=`<li>${link(x.t)}</li>`});
-  o+=chips([['all','All Months'],['now','This Month'],['Winter','Winter'],['Spring','Spring'],['Summer','Summer'],['Fall','Fall']]);
+  o+=accBar();o+=chips([['all','All Months'],['now','This Month'],['Winter','Winter'],['Spring','Spring'],['Summer','Summer'],['Fall','Fall']]);
   let id=ID();o+=`<div class="card hl mon" id="${id}" data-m="every"><div class="t">Every Month</div>${tasks(MT.every,'every')}</div>`;MT.every.forEach(r=>reg('maint',id,'Every Month',r.t));
   MN.forEach(m=>{const id=ID();o+=`<div class="card mon" id="${id}" data-m="${m}"><div class="t">${m}${m==now?'<span class="now">This Month</span>':''}</div>${tasks(MT.months[m],m)}</div>`;MT.months[m].forEach(r=>reg('maint',id,m,r.t));});
   id=ID();o+=`<h3 class="grp">Good to Know</h3><div class="card" id="${id}"><ul class="b">${notes}</ul></div>`;reg('maint',id,'Good to Know',notes);
@@ -340,16 +367,23 @@ R.warranty=()=>{const b=D.warranty;let o='';
   o+=`<div class="card warn" id="${id}"><div class="t">${txt(box.c[0].t)}</div><ul class="b">${box.c.filter(x=>x.k=='li').map(x=>`<li>${link(x.t)}</li>`).join('')}</ul></div>`;
   reg('warranty',id,'Register These Now',box.c.map(x=>x.t).join(' '));
   o+=`<h3 class="grp">Coverage by Item</h3>`;
-  o+=rowsCards('warranty',b.filter(x=>x.k=='tbl')[0].rows);
+  o+=accBar()+accRows('warranty',b.filter(x=>x.k=='tbl')[0].rows,2,r=>{const c=txt(link(r[2]||''));const m=c.match(/lifetime/i)?'Lifetime':(c.match(/(\d+|one|two|three|five|ten)[- ](year|yr)/i)||[])[0];return m?m.replace(/^(.)/,s=>s.toUpperCase()).replace(/-/,' ').replace(/\byear\b/i,'Year'):'See Terms'});
   const n=b.find(x=>x.k=='p'&&x.s=='fvn');if(n)o+=`<div class="note">${n.t}</div>`;
   return o;};
 R.docs=()=>{const b=D.docs;let o='';
-  o+=`<a class="call" href="${DROP}" target="_blank" rel="noopener">📁 Open the Digital Folder</a><p class="note">Opens in Dropbox. Needs an internet connection.</p>`;
+  o+=`<a class="call" href="${DROP}" target="_blank" rel="noopener">📁 Open the Digital Folder</a><p class="note">Opens in Dropbox. Needs an internet connection.</p>`+accBar();
   b.forEach(x=>{if(x.k=='h2')o+=`<h3 class="grp">${x.t.replace(/^\d+\.\s*/,'')}</h3>`;
-    else if(x.k=='tbl')o+=rowsCards('docs',[['','Details'],...x.rows.map(r=>[r[0],r[1]])]).replace(/<dt>Details<\/dt>/g,'<dt></dt>').replace(/class="kv"/g,'class="kv" style="grid-template-columns:0 1fr;gap:0"');});
+    else if(x.k=='tbl')o+=x.rows.map(r=>acc('docs',link(r[0]),'',`<div>${link(r[1])}</div>`,r.join(' '))).join('');});
   return o;};
 R.roster=()=>{let o='<p class="intro">Companies that designed, built or supplied part of your home.</p>';
-  o+=rowsCards('roster',[['Company','Scope','Contact','Phone','Email','Address'],...D.roster.map(r=>r.map(c=>c.replace(/\n/g,'<br>')))]);return o;};
+  const CAT=[['Design and Engineering',/Kem Tec|HbbDeco|G2 Consulting|Stonefield|Testing Engineers|Lopez/],['Systems: Electrical, Plumbing, HVAC and More',/Woodward|Blue Ray|All-In|Advance Plumbing|New Age|Oakland Fireplace|American Pool/],['Interiors and Finishes',/Property Care|Preferred Marble|Semjan|LA Painting|Marchio|LLS|EuroAmerica|Diamond|City Glass|Virginia Tile|Prosource|Herald|Big George|Floor & Decor/],['Structure, Exterior and Supply',/./]];
+  const G={};D.roster.forEach(r=>{const c=CAT.find(([n,re])=>re.test(r[0]))[0];(G[c]=G[c]||[]).push(r)});o+=accBar();
+  const short=s=>{let x=txt(s).split(/[:(;]/)[0].split(/,| and /)[0].trim();return x.length>28?x.slice(0,27)+'…':x};
+  for(const[c]of CAT){if(!G[c])continue;o+=`<h3 class="grp">${c}</h3><div class="accg">`;G[c].forEach(r=>{const [co,sc,ct,ph,em,ad]=r.map(c=>(c||'').replace(/\n/g,'<br>'));const P=phones(ph);
+    let b=`<dl class="kv"><dt>Scope</dt><dd>${link(sc)}</dd>${ct?`<dt>Contact</dt><dd>${link(ct)}</dd>`:''}${ph?`<dt>Phone</dt><dd>${link(ph)}</dd>`:''}${em&&!/TBD/.test(em)?`<dt>Email</dt><dd>${link(em)}</dd>`:''}${ad?`<dt>Address</dt><dd>${link(ad)}</dd>`:''}</dl>`;
+    if(P.length)b+=`<a class="call" href="tel:+1${P[0][1]}${P[0][2]}${P[0][3]}">📞 Call</a>`;const E=(em||'').match(/[\w.+-]+@[\w.-]+\.\w+/);if(E)b+=`<a class="call sm" href="mailto:${E[0]}">✉️ Email</a>`;
+    o+=acc('roster',esc(txt(co).replace(/\s*\(.*$/,'')),esc(short(sc)),b,r.join(' '))});o+='</div>'}
+  return o;};
 R.welcome=()=>{const id=ID();const ps=D.welcome.filter(x=>x.s=='body_l').map(x=>x.t.replace(/^Niko and Vivia,/,'Niko and Vivian,').replace(/This binder is/,'This is'));
   reg('welcome',id,'Welcome Letter',ps.join(' '));
   return `<div class="card letter" id="${id}" style="padding:22px 20px">${ps.map(p=>`<p>${link(p)}</p>`).join('')}</div>`;};
@@ -415,6 +449,9 @@ function search(q){
 const TABOF={'':'home',emerg:'emerg',call:'call',maint:'maint',warranty:'warranty'};
 let lastQ='';
 function setTab(k){document.querySelectorAll('nav.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab==(TABOF[k]??'more')))}
+function accSet(el,v){el.classList.toggle('open',v);el.querySelector('.ah').setAttribute('aria-expanded',v)}
+document.addEventListener('click',e=>{const h=e.target.closest('.acc>.ah');if(h){const a=h.parentElement;accSet(a,!a.classList.contains('open'));return}
+ const b=e.target.closest('[data-accall]');if(b){document.querySelectorAll('main .acc, #app .acc, .acc').forEach(a=>accSet(a,b.dataset.accall=='1'))}});
 function route(){
   closeMore();
   const m=location.hash.match(/^#\/(\w+)(?:\/(\w+))?/);const app=$('#app');
@@ -424,7 +461,7 @@ function route(){
     const body=m[1]=='finishes'?finView():HTML[m[1]];
     app.innerHTML=`<div class="wrap"><h2 class="sec">${s.t}</h2>${body}</div>`;
     $('#ttl').innerHTML=s.t;$('#back').classList.add('show');setTab(m[1]);
-    if(m[2]&&m[1]!='finishes'){const el=document.getElementById(m[2]);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash')}}else window.scrollTo(0,0);
+    if(m[2]&&m[1]!='finishes'){const el=document.getElementById(m[2]);if(el){const a=el.classList.contains('acc')?el:el.closest('.acc');if(a)accSet(a,true);el.scrollIntoView({block:'center'});el.classList.add('flash')}}else window.scrollTo(0,0);
   }else{app.innerHTML=home();$('#ttl').innerHTML='';$('#back').classList.remove('show');setTab('');
     const q=$('#q');q.value=lastQ;q.addEventListener('input',e=>{lastQ=e.target.value;search(lastQ)});search(lastQ);window.scrollTo(0,0)}
 }
