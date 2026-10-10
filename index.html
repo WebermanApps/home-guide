@@ -208,6 +208,15 @@ nav.tabs a.on{box-shadow:inset 0 -2px 0 #171717}
 .accg{margin-bottom:14px}
 .acc.flash{box-shadow:inset 3px 0 0 #171717}
 @media(min-width:700px){.acc .am{max-width:300px}}
+
+/* Sort control */
+.sortbar{display:flex;flex-wrap:wrap;align-items:center;gap:0;margin:2px 0 8px}
+.sortbar .sl{font:700 11px hind,Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin-right:8px}
+.sortbar button{min-height:34px;padding:0 10px;background:#fff;border:1px solid #171717;margin-left:-1px;color:#171717;font:600 12px hind,Arial,sans-serif;border-radius:0;cursor:pointer}
+.sortbar button.on{background:#171717;color:#fff}
+.slist>h3.sg{margin:14px 0 6px}
+.slist>h3.sg:first-child{margin-top:4px}
+.slist>.acc{will-change:transform}
 @media print{header.top,.chips,.search,nav.tabs{display:none}}
 </style></head><body>
 <header class="top"><div class="wrap"><button class="back" id="back" aria-label="Back">‹ Back</button><div class="ttl" id="ttl"></div><a class="wm" id="wm" href="#/" aria-label="Max Weberman, home">Max Weberman</a></div></header>
@@ -271,11 +280,30 @@ function rowsCards(sec,rows,opt={}){
     reg(sec,id,r[0],r.join(' '));});
   return o;
 }
-function acc(sec,title,meta,body,searchText){const id=ID();reg(sec,id,txt(title),searchText||txt(title)+' '+txt(body));
-  return `<div class="acc" id="${id}"><button class="ah mw-hover" type="button" aria-expanded="false"><span class="at">${title}</span><span class="am">${meta||''}</span><span class="ch" aria-hidden="true"></span></button><div class="ab" role="region"><div>${body}</div></div></div>`}
+function acc(sec,title,meta,body,searchText,d){const id=ID();const da=Object.entries(d||{}).map(([k,v])=>` data-s-${k}="${esc(String(v))}"`).join('');reg(sec,id,txt(title),searchText||txt(title)+' '+txt(body));
+  return `<div class="acc" id="${id}"${da}><button class="ah mw-hover" type="button" aria-expanded="false"><span class="at">${title}</span><span class="am">${meta||''}</span><span class="ch" aria-hidden="true"></span></button><div class="ab" role="region"><div>${body}</div></div></div>`}
 function accBar(){return `<div class="accbar"><button class="mw-hover" data-accall="1">Expand All</button><button class="mw-hover" data-accall="0">Collapse All</button></div>`}
-function accRows(sec,rows,metaCol,metaFn){const hd=rows[0].map(txt);return rows.slice(1).map(r=>{let kv='';r.slice(1).forEach((c,i)=>{if(c&&c!=='—'&&c!=='\u2014'&&!(i+1==metaCol&&!metaFn))kv+=`<dt>${esc(hd[i+1])}</dt><dd>${link(c)}</dd>`});
-  const meta=metaFn?metaFn(r):txt(link(r[metaCol]||''));const full=txt(link(r[0]));const pm=full.match(/^(.*?)\s*\((.+)\)\s*$/);if(pm&&sec=='equip'){kv=`<dt>Details</dt><dd>${esc(pm[2])}</dd>`+kv;return acc(sec,esc(pm[1]),esc(meta),`<dl class="kv">${kv}</dl>`,r.join(' '))}return acc(sec,link(r[0]),esc(meta),kv?`<dl class="kv">${kv}</dl>`:'',r.join(' '))}).join('')}
+function accRows(sec,rows,metaCol,metaFn,dFn){const hd=rows[0].map(txt);return rows.slice(1).map(r=>{let kv='';r.slice(1).forEach((c,i)=>{if(c&&c!=='—'&&c!=='\u2014'&&!(i+1==metaCol&&!metaFn))kv+=`<dt>${esc(hd[i+1])}</dt><dd>${link(c)}</dd>`});
+  const meta=metaFn?metaFn(r):txt(link(r[metaCol]||''));const full=txt(link(r[0]));const pm=full.match(/^(.*?)\s*\((.+)\)\s*$/);if(pm&&sec=='equip'){kv=`<dt>Details</dt><dd>${esc(pm[2])}</dd>`+kv;return acc(sec,esc(pm[1]),esc(meta),`<dl class="kv">${kv}</dl>`,r.join(' '),dFn&&dFn(r))}return acc(sec,link(r[0]),esc(meta),kv?`<dl class="kv">${kv}</dl>`:'',r.join(' '),dFn&&dFn(r))}).join('')}
+const SKEY=s=>txt(String(s)).toLowerCase().replace(/^[\s\d\W_]+/,'').replace(/^(the|a|an)\s+/,'');
+const SCMP=(a,b)=>SKEY(a).localeCompare(SKEY(b),undefined,{numeric:true});
+const SORTS={};// sec -> {def, modes:[[id,label,attr,groupOrder(fn|array|'desc'), within:'az'|'ord'|'datedesc', hdr(fn)]]}
+function sortBox(sec,items){const S=SORTS[sec];return `<div class="sortbar" data-sec="${sec}"><span class="sl">Sort</span>${S.modes.map(m=>`<button class="mw-hover" data-sort="${m[0]}">${m[1]}</button>`).join('')}</div><div class="slist" data-sec="${sec}">${items}</div>`}
+function getSort(sec){const S=SORTS[sec];let v;try{v=localStorage.getItem('hg-sort-'+sec)}catch(e){}return S.modes.some(m=>m[0]==v)?v:S.def}
+function applySort(sec,mode,anim){const S=SORTS[sec];const list=document.querySelector(`.slist[data-sec="${sec}"]`);if(!list)return;
+  const M=S.modes.find(m=>m[0]==mode)||S.modes[0];document.querySelectorAll(`.sortbar[data-sec="${sec}"] button`).forEach(b=>b.classList.toggle('on',b.dataset.sort==M[0]));
+  const its=[...list.querySelectorAll(':scope>.acc')];const before=new Map(anim?its.map(e=>[e,e.getBoundingClientRect().top]):[]);
+  list.querySelectorAll(':scope>h3.sg').forEach(h=>h.remove());
+  const ttl=e=>e.querySelector('.at').textContent;const within=M[4]||'az';
+  const wcmp=(a,b)=>within=='ord'?(+a.dataset.sOrd)-(+b.dataset.sOrd):within=='datedesc'?((b.dataset.sDate||'')).localeCompare(a.dataset.sDate||'')||SCMP(ttl(a),ttl(b)):SCMP(ttl(a),ttl(b));
+  if(!M[2]){its.sort(wcmp).forEach(e=>list.appendChild(e))}
+  else{const G=new Map();its.forEach(e=>{const g=e.getAttribute('data-s-'+M[2])||'Other';if(!G.has(g))G.set(g,[]);G.get(g).push(e)});
+    let keys=[...G.keys()];const o=M[3];
+    if(Array.isArray(o))keys.sort((a,b)=>((o.indexOf(a)+1)||999)-((o.indexOf(b)+1)||999)||SCMP(a,b));else if(typeof o=='function')keys.sort(o);else keys.sort(SCMP);
+    keys.forEach(k=>{const h=document.createElement('h3');h.className='grp sg';h.dataset.g=k;h.innerHTML=M[5]?M[5](k):esc(k);list.appendChild(h);G.get(k).sort(wcmp).forEach(e=>list.appendChild(e))})}
+  list.dataset.mode=M[0];if(S.after)S.after(M[0]);
+  if(anim)its.forEach(e=>{const d=before.get(e)-e.getBoundingClientRect().top;if(d){e.style.transition='none';e.style.transform=`translateY(${d}px)`;requestAnimationFrame(()=>requestAnimationFrame(()=>{e.style.transition='transform .35s cubic-bezier(.2,.8,.2,1)';e.style.transform=''}))}});}
+function applySorts(){document.querySelectorAll('.slist').forEach(l=>applySort(l.dataset.sec,getSort(l.dataset.sec),false))}
 function chips(list){return `<div class="chips">${list.map(([k,l],i)=>`<button class="chip${i==0?' on':''}" data-k="${k}">${l}</button>`).join('')}</div>`}
 // ---- emergencies data
 const EMS=[];{let cur=null;for(const x of D.call){if(x.k=='h3'){cur={t:x.t,s:[]};EMS.push(cur)}else if(cur&&x.k=='p'&&x.s=='es')cur.s.push(x.t.replace(/^\d+\.\s*/,''))}}
@@ -298,22 +326,26 @@ R.call=()=>{const b=D.call;let o='';
   <div class="acts"><a class="call" href="tel:+12485059956">📞 Call Mobile</a><a class="call sm" href="tel:+12489325800">📞 Office</a><a class="call sm" href="mailto:max@webermanconstruction.com">✉️ Email</a></div></div>`;
   reg('call',id,'Max Weberman, Weberman Construction LLC',box.c.map(x=>x.t).join(' '));
   o+=`<a class="card warn" href="#/emerg" style="display:block;text-decoration:none;color:inherit"><div class="t">🚨 Emergencies ›</div><div class="note" style="margin:4px 0 0">Gas smell, water leak, no heat, electrical, sump pump.</div></a>`+accBar();
-  let tb=0;
+  let tb=0,L='';SORTS.call={def:'az',modes:[['az','A–Z'],['trade','By Trade','trade']]};
   for(const x of b){
-    if(x.k=='h2'&&x.t!='Emergencies'){o+=`<h3 class="grp">${x.t}</h3>`;}
-    else if(x.k=='tbl'){o+=x.rows.slice(1).map(r=>{const ph=phones(r[2]);const co=txt(link(r[1])).replace(/\s*\(.*$/,'');const who=(txt(link(r[1])).match(/\((.*)\)/)||[])[1];
+    if(x.k=='tbl'){L+=x.rows.slice(1).map(r=>{const ph=phones(r[2]);const co=txt(link(r[1])).replace(/\s*\(.*$/,'');const who=(txt(link(r[1])).match(/\((.*)\)/)||[])[1];
       const body=`<div class="note" style="margin:0 0 4px">${link(r[0])}</div>${who?`<div>${esc(who)}</div>`:''}${ph.length?`<a class="call" href="tel:+1${ph[0][1]}${ph[0][2]}${ph[0][3]}">📞 ${r[2]}</a>`:`<div class="note" style="margin-top:6px">${link(r[2])}</div>`}`;
-      return acc('call',esc(co),esc(txt(r[0]).split(/[,:(]/)[0]),body,r.join(' '))}).join('')}
+      const tr=txt(r[0]).split(/[,:(]/)[0].trim();return acc('call',esc(co),esc(tr),body,r.join(' '),{trade:tr.replace(/^./,c=>c.toUpperCase())})}).join('')}
   }
-  return o;};
-R.shutoffs=()=>accBar()+accRows('shutoffs',SHUT,1);
+  return o+sortBox('call',L);};
+SORTS.shutoffs={def:'az',modes:[['az','A–Z'],['lvl','By Location','lvl',['Basement','First Floor','Second Floor','Garage','Outside','Other']]]};
+const LVL=r=>{const w=txt(link(r[1]+' '+(r[2]||''))).toLowerCase();return /basement|lower level|mechanical/.test(w)?'Basement':/garage/.test(w)?'Garage':/second|2nd|upstairs/.test(w)?'Second Floor':/first|main|1st|kitchen|laundry/.test(w)?'First Floor':/outside|exterior|yard|meter|street/.test(w)?'Outside':'Other'};
+R.shutoffs=()=>accBar()+sortBox('shutoffs',accRows('shutoffs',SHUT,1,null,r=>({lvl:LVL(r)})));
 R.equip=()=>{const b=D.equip;let o='',groups=[];
   const intro=b.find(x=>x.k=='p');o+=`<p class="intro">${link(intro.t)}</p>`;
-  let body='';let g=0;
-  b.forEach((x,i)=>{if(x.k=='h2'){g++;groups.push(x.t);body+=`<h3 class="grp" id="g${g}">${x.t}</h3>`}
-    else if(x.k=='tbl')body+=accRows('equip',x.rows,3,r=>{const w=txt(link(r[3]||''));return w&&!/confirm/i.test(w)?w:txt(link(r[1]||''))});
+  let body='',L='',sys='',SY=[];
+  const room=r=>{let w=txt(link(r[3]||'')).replace(/^\d+\s*[–-]\s*/,'').replace(/^\d+\s*(\(|,)?/,'').trim();if(!w||/confirm/i.test(w))return 'Location Not Listed';w=w.split(/[,(;]/)[0].trim();return (w.length>40?w.slice(0,39)+'…':w).replace(/^./,c=>c.toUpperCase())};
+  b.forEach((x,i)=>{if(x.k=='h2'){sys=x.t;SY.push(txt(x.t))}
+    else if(x.k=='tbl')L+=accRows('equip',x.rows,3,r=>{const w=txt(link(r[3]||''));return w&&!/confirm/i.test(w)?w:txt(link(r[1]||''))},r=>({sys:txt(sys),room:room(r),brand:(()=>{const v=txt(link(r[1]||''));return !v||/confirm/i.test(v)?'Brand Not Listed':v})()}));
     else if(x.k=='p'&&i>1){if(x.s=='fvn')body+=`<div class="note">${x.t}</div>`;else{const id=ID();body+=`<div class="card" id="${id}">${link(x.t)}</div>`;reg('equip',id,'Equipment',x.t)}}});
-  return o+accBar()+`<div class="chips">${groups.map((t,i)=>`<button class="chip" data-jump="g${i+1}">${t}</button>`).join('')}</div>`+body;};
+  SORTS.equip={def:'az',modes:[['az','A–Z'],['room','By Room','room'],['brand','By Brand','brand'],['sys','By System','sys',SY,'ord']]};
+  let k=0;L=L.replace(/class="acc" id=/g,()=>`class="acc" data-s-ord="${k++}" id=`);
+  return o+accBar()+sortBox('equip',L)+body;};
 // ---- maintenance + calendar
 const SEASON={Winter:['December','January','February'],Spring:['March','April','May'],Summer:['June','July','August'],Fall:['September','October','November']};
 const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -324,14 +356,14 @@ R.maint=()=>{const b=D.maint;let o='';
   o+=`<button class="addall" id="addall">📅 Add All to My Calendar</button><p class="note" style="text-align:center;margin-top:0">Repeating reminders on the first Saturday of each month, 9:00 AM, with an alert the day before. Works with iPhone and Google Calendar.</p>`;
   o+=`<p class="intro"><span class="who">You</span> do it yourself &nbsp; <span class="who pro">Pro</span> call a pro</p>`;
   const now=MN[new Date().getMonth()];
-  const tasks=(rows,m)=>rows.map(r=>{const pro=/Pro/.test(r.w)&&!/You/.test(r.w);const k=TASKS.push({...r,m})-1;
+  let ord=0;const tasks=(rows,m)=>rows.map(r=>{const pro=/Pro/.test(r.w)&&!/You/.test(r.w);const k=TASKS.push({...r,m})-1;
     const head=r.t.split(/(?<=[.!?])\s/)[0].replace(/[.:]$/,'');const when=m=='every'?'Monthly':m;
-    return acc('maint',esc(head.length>70?head.slice(0,68)+'…':head),`${when} · ${pro?'Pro':'You'}`,`<p style="margin:0 0 8px">${link(esc(r.t))}</p><div style="display:flex;gap:8px;align-items:center"><span class="who${pro?' pro':''}">${r.w}</span><button class="rem mw-hover" data-task="${k}" aria-label="Remind me">🔔 Remind Me</button></div>`,r.t)}).join('');
+    return acc('maint',esc(head.length>70?head.slice(0,68)+'…':head),`${when} · ${pro?'Pro':'You'}`,`<p style="margin:0 0 8px">${link(esc(r.t))}</p><div style="display:flex;gap:8px;align-items:center"><span class="who${pro?' pro':''}">${r.w}</span><button class="rem mw-hover" data-task="${k}" aria-label="Remind me">🔔 Remind Me</button></div>`,r.t,{m,who:pro?'Pro':/Pro/.test(r.w)?'You or Pro':'You',ord:ord++})}).join('');
   let notes='';b.forEach(x=>{if(x.k=='li')notes+=`<li>${link(x.t)}</li>`});
   o+=accBar();o+=chips([['all','All Months'],['now','This Month'],['Winter','Winter'],['Spring','Spring'],['Summer','Summer'],['Fall','Fall']]);
-  let id=ID();o+=`<div class="card hl mon" id="${id}" data-m="every"><div class="t">Every Month</div>${tasks(MT.every,'every')}</div>`;MT.every.forEach(r=>reg('maint',id,'Every Month',r.t));
-  MN.forEach(m=>{const id=ID();o+=`<div class="card mon" id="${id}" data-m="${m}"><div class="t">${m}${m==now?'<span class="now">This Month</span>':''}</div>${tasks(MT.months[m],m)}</div>`;MT.months[m].forEach(r=>reg('maint',id,m,r.t));});
-  id=ID();o+=`<h3 class="grp">Good to Know</h3><div class="card" id="${id}"><ul class="b">${notes}</ul></div>`;reg('maint',id,'Good to Know',notes);
+  SORTS.maint={def:'month',modes:[['month','By Month','m',['every',...MN],'ord',k=>k=='every'?'Every Month':k+(k==now?' <span class="now">This Month</span>':'')],['az','A–Z'],['who','By Who','who',['You','You or Pro','Pro']]],after:md=>{const c=document.querySelector('#app .chips');if(c)c.style.display=md=='month'?'':'none';if(md!='month')mfilt('all');else{const on=document.querySelector('.chip[data-k].on');mfilt(on?on.dataset.k:'all')}}};
+  o+=sortBox('maint',tasks(MT.every,'every')+MN.map(m=>tasks(MT.months[m],m)).join(''));
+  let id=ID();o+=`<h3 class="grp">Good to Know</h3><div class="card" id="${id}"><ul class="b">${notes}</ul></div>`;reg('maint',id,'Good to Know',notes);
   return o;};
 // RFC 5545
 const ICS={
@@ -366,24 +398,35 @@ R.warranty=()=>{const b=D.warranty;let o='';
   const box=b.find(x=>x.k=='box');let id=ID();
   o+=`<div class="card warn" id="${id}"><div class="t">${txt(box.c[0].t)}</div><ul class="b">${box.c.filter(x=>x.k=='li').map(x=>`<li>${link(x.t)}</li>`).join('')}</ul></div>`;
   reg('warranty',id,'Register These Now',box.c.map(x=>x.t).join(' '));
-  o+=`<h3 class="grp">Coverage by Item</h3>`;
-  o+=accBar()+accRows('warranty',b.filter(x=>x.k=='tbl')[0].rows,2,r=>{const c=txt(link(r[2]||''));const m=c.match(/lifetime/i)?'Lifetime':(c.match(/(\d+|one|two|three|five|ten)[- ](year|yr)/i)||[])[0];return m?m.replace(/^(.)/,s=>s.toUpperCase()).replace(/-/,' ').replace(/\byear\b/i,'Year'):'See Terms'});
+  o+=`<h3 class="grp">Coverage by Item</h3><p class="note" style="margin-top:0">End dates are counted from occupancy (Aug 7, 2026); check each warranty for exact terms.</p>`;
+  const YW={one:1,two:2,three:3,five:5,ten:10};const yrs=r=>{const c=txt(link(r[2]||''));if(/lifetime/i.test(c))return 999;const m=c.match(/(\d+|one|two|three|five|ten)[- ](year|yr)/i);return m?(+m[1]||YW[m[1].toLowerCase()]):0};
+  const lenL=y=>y==999?'Lifetime':y?y+' Year'+(y>1?'s':''):'See Terms';const endL=y=>y==999?'Lifetime':y?'Ends Aug '+(2026+y):'End Date Not Listed';
+  SORTS.warranty={def:'az',modes:[['az','A–Z'],['len','By Coverage Length','len',(a,b)=>(+b.split('|')[0])-(+a.split('|')[0]),'az',k=>lenL(+k.split('|')[0])],['exp','By Expiry','exp',(a,b)=>((+a.split('|')[0])||1e4)-((+b.split('|')[0])||1e4),'az',k=>k.split('|')[1]]]};
+  o+=accBar()+sortBox('warranty',accRows('warranty',b.filter(x=>x.k=='tbl')[0].rows,2,r=>{const c=txt(link(r[2]||''));const m=c.match(/lifetime/i)?'Lifetime':(c.match(/(\d+|one|two|three|five|ten)[- ](year|yr)/i)||[])[0];return m?m.replace(/^(.)/,s=>s.toUpperCase()).replace(/-/,' ').replace(/\byear\b/i,'Year'):'See Terms'},r=>{const y=yrs(r);return{len:y+'|',exp:(y==999?9999:y?2026+y:0)+'|'+endL(y)}}));
   const n=b.find(x=>x.k=='p'&&x.s=='fvn');if(n)o+=`<div class="note">${n.t}</div>`;
   return o;};
 R.docs=()=>{const b=D.docs;let o='';
   o+=`<a class="call" href="${DROP}" target="_blank" rel="noopener">📁 Open the Digital Folder</a><p class="note">Opens in Dropbox. Needs an internet connection.</p>`+accBar();
-  b.forEach(x=>{if(x.k=='h2')o+=`<h3 class="grp">${x.t.replace(/^\d+\.\s*/,'')}</h3>`;
-    else if(x.k=='tbl')o+=x.rows.map(r=>acc('docs',link(r[0]),'',`<div>${link(r[1])}</div>`,r.join(' '))).join('');});
-  return o;};
+  let cat='',CA=[],L='',k=0;const MO={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  const dt=s=>{s=txt(link(s));let m,best='';const re1=/(\d{1,2})\/(\d{1,2})\/(\d{4})/g,re2=/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})/gi,re3=/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{4})/gi;
+    const put=(y,mo,d)=>{const v=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;if(v>best)best=v};
+    while(m=re1.exec(s))put(m[3],m[1],m[2]);while(m=re2.exec(s))put(m[3],MO[m[1].slice(0,3).toLowerCase()],m[2]);while(m=re3.exec(s))put(m[2],MO[m[1].slice(0,3).toLowerCase()],1);return best};
+  b.forEach(x=>{if(x.k=='h2'){cat=x.t.replace(/^\d+\.\s*/,'');CA.push(cat)}
+    else if(x.k=='tbl')L+=x.rows.map(r=>{const d=dt(r.join(' '));return acc('docs',link(r[0]),d?new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',year:'numeric'}):'',`<div>${link(r[1])}</div>`,r.join(' '),{cat:txt(cat),date:d,yr:d?d.slice(0,4):'Undated',ord:k++})}).join('');});
+  SORTS.docs={def:'az',modes:[['az','A–Z'],['cat','By Category','cat',CA.map(txt),'ord'],['date','By Date','yr',(a,b)=>a=='Undated'?1:b=='Undated'?-1:b.localeCompare(a),'datedesc']]};
+  return o+sortBox('docs',L);};
 R.roster=()=>{let o='<p class="intro">Companies that designed, built or supplied part of your home.</p>';
   const CAT=[['Design and Engineering',/Kem Tec|HbbDeco|G2 Consulting|Stonefield|Testing Engineers|Lopez/],['Systems: Electrical, Plumbing, HVAC and More',/Woodward|Blue Ray|All-In|Advance Plumbing|New Age|Oakland Fireplace|American Pool/],['Interiors and Finishes',/Property Care|Preferred Marble|Semjan|LA Painting|Marchio|LLS|EuroAmerica|Diamond|City Glass|Virginia Tile|Prosource|Herald|Big George|Floor & Decor/],['Structure, Exterior and Supply',/./]];
-  const G={};D.roster.forEach(r=>{const c=CAT.find(([n,re])=>re.test(r[0]))[0];(G[c]=G[c]||[]).push(r)});o+=accBar();
+  o+=accBar();let L='';
   const short=s=>{let x=txt(s).split(/[:(;]/)[0].split(/,| and /)[0].trim();return x.length>28?x.slice(0,27)+'…':x};
-  for(const[c]of CAT){if(!G[c])continue;o+=`<h3 class="grp">${c}</h3><div class="accg">`;G[c].forEach(r=>{const [co,sc,ct,ph,em,ad]=r.map(c=>(c||'').replace(/\n/g,'<br>'));const P=phones(ph);
+  const TRM=[['Survey and Engineering',/survey|engineer|geotech|testing|architect/i],['Plumbing',/plumbing|water heater/i],['Electrical',/electric/i],['HVAC',/hvac/i],['Low Voltage',/low voltage/i],['Fireplaces',/fireplace/i],['Appliances',/appliance/i],['Pool',/pool/i],['Cabinets and Millwork',/cabinet|millwork|built-in|finish carpentry/i],['Countertops and Stone',/countertop|limestone/i],['Tile and Flooring',/tile|hardwood|carpet|flooring|LVT|epoxy/i],['Painting',/paint/i],['Masonry and Brick',/masonry|brick|stucco/i],['Roofing',/roof/i],['Windows and Doors',/window|garage door|folding|entry glass/i],['Glass and Metal',/glass|railing|metal/i],['Structure and Framing',/foundation|steel|lumber|framing|drywall|insulation/i],['Equipment',/./]];
+  const TR=s=>TRM.find(([n,re])=>re.test(s))[0];
+  SORTS.roster={def:'az',modes:[['az','A–Z'],['trade','By Trade','trade'],['cat','By Category','cat',CAT.map(c=>c[0])]]};
+  D.roster.forEach(r=>{const cat=CAT.find(([n,re])=>re.test(r[0]))[0];{const [co,sc,ct,ph,em,ad]=r.map(c=>(c||'').replace(/\n/g,'<br>'));const P=phones(ph);
     let b=`<dl class="kv"><dt>Scope</dt><dd>${link(sc)}</dd>${ct?`<dt>Contact</dt><dd>${link(ct)}</dd>`:''}${ph?`<dt>Phone</dt><dd>${link(ph)}</dd>`:''}${em&&!/TBD/.test(em)?`<dt>Email</dt><dd>${link(em)}</dd>`:''}${ad?`<dt>Address</dt><dd>${link(ad)}</dd>`:''}</dl>`;
     if(P.length)b+=`<a class="call" href="tel:+1${P[0][1]}${P[0][2]}${P[0][3]}">📞 Call</a>`;const E=(em||'').match(/[\w.+-]+@[\w.-]+\.\w+/);if(E)b+=`<a class="call sm" href="mailto:${E[0]}">✉️ Email</a>`;
-    o+=acc('roster',esc(txt(co).replace(/\s*\(.*$/,'')),esc(short(sc)),b,r.join(' '))});o+='</div>'}
-  return o;};
+    L+=acc('roster',esc(txt(co).replace(/\s*\(.*$/,'')),esc(short(sc)),b,r.join(' '),{trade:TR(sc+' '+co),cat})}});
+  return o+sortBox('roster',L);};
 R.welcome=()=>{const id=ID();const ps=D.welcome.filter(x=>x.s=='body_l').map(x=>x.t.replace(/^Niko and Vivia,/,'Niko and Vivian,').replace(/This binder is/,'This is'));
   reg('welcome',id,'Welcome Letter',ps.join(' '));
   return `<div class="card letter" id="${id}" style="padding:22px 20px">${ps.map(p=>`<p>${link(p)}</p>`).join('')}</div>`;};
@@ -423,7 +466,11 @@ function finView(){let o=`<p class="intro">Tap a room to see its finishes. Based
   o+=`<div class="seg" id="mode" style="margin-top:-4px"><button data-mode="plan" class="${finMode=='plan'?'on':''}">Floor Plan</button><button data-mode="list" class="${finMode=='list'?'on':''}">Room List</button><a class="seg3d" href="3d-house.html">3D View</a></div>`;
   const L=FIN.levels.find(l=>l.id==finLevel);
   if(finMode=='plan')o+=`<div class="plan">${planSVG(L)}</div><p class="legend">Darker rooms have finish details on file.</p>`;
-  else o+=`<div class="card rlist">${L.rooms.filter(r=>r.id!='OTB').map(r=>`<a href="#/room/${r.id}"><span>${esc(rname(ROOM[r.id]))}</span><small>${r.id} · ${(FIN.rooms[r.id]||[]).length||'—'} ›</small></a>`).join('')}</div>`;
+  else{let fs='lvl';try{fs=localStorage.getItem('hg-sort-fin')||'lvl'}catch(e){}
+    o+=`<div class="sortbar"><span class="sl">Sort</span><button class="mw-hover${fs=='lvl'?' on':''}" data-fsort="lvl">By Level</button><button class="mw-hover${fs=='az'?' on':''}" data-fsort="az">A–Z</button></div>`;
+    if(fs=='az'){const all=FIN.levels.flatMap(l=>l.rooms.filter(r=>r.id!='OTB').map(r=>({r,l})));all.sort((a,b)=>SCMP(rname(ROOM[a.r.id]),rname(ROOM[b.r.id])));
+      o+=`<div class="card rlist">${all.map(({r,l})=>`<a href="#/room/${r.id}"><span>${esc(rname(ROOM[r.id]))}</span><small>${l.name} · ${r.id} · ${(FIN.rooms[r.id]||[]).length||'—'} ›</small></a>`).join('')}</div>`}
+    else o+=`<div class="card rlist">${L.rooms.filter(r=>r.id!='OTB').map(r=>`<a href="#/room/${r.id}"><span>${esc(rname(ROOM[r.id]))}</span><small>${r.id} · ${(FIN.rooms[r.id]||[]).length||'—'} ›</small></a>`).join('')}</div>`;}
   o+=`<h3 class="grp">Throughout the Home</h3><div class="card rlist"><a href="#/room/whole"><span>Whole House</span><small>${FIN.whole.length} ›</small></a><a href="#/room/exterior"><span>Exterior</span><small>${FIN.exterior.length} ›</small></a></div>`;
   return o;}
 R.finishes=()=>finView();
@@ -449,8 +496,10 @@ function search(q){
 const TABOF={'':'home',emerg:'emerg',call:'call',maint:'maint',warranty:'warranty'};
 let lastQ='';
 function setTab(k){document.querySelectorAll('nav.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab==(TABOF[k]??'more')))}
+function mfilt(k){const now=MN[new Date().getMonth()];const ok=mm=>k=='all'||mm=='every'||(k=='now'&&mm==now)||(SEASON[k]||[]).includes(mm);
+  document.querySelectorAll('.slist[data-sec="maint"]>.acc').forEach(x=>x.style.display=ok(x.dataset.sM)?'':'none');document.querySelectorAll('.slist[data-sec="maint"]>h3.sg').forEach(h=>h.style.display=ok(h.dataset.g)?'':'none')}
 function accSet(el,v){el.classList.toggle('open',v);el.querySelector('.ah').setAttribute('aria-expanded',v)}
-document.addEventListener('click',e=>{const h=e.target.closest('.acc>.ah');if(h){const a=h.parentElement;accSet(a,!a.classList.contains('open'));return}
+document.addEventListener('click',e=>{const fb=e.target.closest('[data-fsort]');if(fb){try{localStorage.setItem('hg-sort-fin',fb.dataset.fsort)}catch(_){}const y=scrollY;$('#app').querySelector('.wrap').innerHTML=`<h2 class="sec">Finishes</h2>`+finView();scrollTo(0,y);return}const sb=e.target.closest('.sortbar button');if(sb){const sec=sb.parentElement.dataset.sec;try{localStorage.setItem('hg-sort-'+sec,sb.dataset.sort)}catch(_){}applySort(sec,sb.dataset.sort,true);return}const h=e.target.closest('.acc>.ah');if(h){const a=h.parentElement;accSet(a,!a.classList.contains('open'));return}
  const b=e.target.closest('[data-accall]');if(b){document.querySelectorAll('main .acc, #app .acc, .acc').forEach(a=>accSet(a,b.dataset.accall=='1'))}});
 function route(){
   closeMore();
@@ -459,7 +508,7 @@ function route(){
   if(m&&m[1]=='finishes'&&m[2]){finLevel=m[2]}
   if(m&&HTML[m[1]]){const s=SEC[m[1]];
     const body=m[1]=='finishes'?finView():HTML[m[1]];
-    app.innerHTML=`<div class="wrap"><h2 class="sec">${s.t}</h2>${body}</div>`;
+    app.innerHTML=`<div class="wrap"><h2 class="sec">${s.t}</h2>${body}</div>`;applySorts();
     $('#ttl').innerHTML=s.t;$('#back').classList.add('show');setTab(m[1]);
     if(m[2]&&m[1]!='finishes'){const el=document.getElementById(m[2]);if(el){const a=el.classList.contains('acc')?el:el.closest('.acc');if(a)accSet(a,true);el.scrollIntoView({block:'center'});el.classList.add('flash')}}else window.scrollTo(0,0);
   }else{app.innerHTML=home();$('#ttl').innerHTML='';$('#back').classList.remove('show');setTab('');
@@ -478,7 +527,7 @@ document.addEventListener('click',e=>{
   const r=e.target.closest('[data-go]');if(r){location.hash=r.dataset.go=='room'?`#/room/${r.dataset.id}`:`#/${r.dataset.go}/${r.dataset.id}`;return}
   const j=e.target.closest('[data-jump]');if(j){const el=document.getElementById(j.dataset.jump);window.scrollTo({top:el.getBoundingClientRect().top+scrollY-120,behavior:'smooth'});return}
   const c=e.target.closest('.chip[data-k]');if(c){document.querySelectorAll('.chip[data-k]').forEach(x=>x.classList.toggle('on',x===c));const k=c.dataset.k;const now=MN[new Date().getMonth()];
-    document.querySelectorAll('.mon').forEach(x=>{const mm=x.dataset.m;x.style.display=(k=='all'||mm=='every'||(k=='now'&&mm==now)||(SEASON[k]||[]).includes(mm))?'':'none'})}
+    mfilt(k)}
 });
 document.addEventListener('keydown',e=>{if(e.key=='Enter'){const rm=e.target.closest&&e.target.closest('[data-room]');if(rm)location.hash='#/room/'+rm.dataset.room}if(e.key=='Escape')closeMore()});
 $('#back').onclick=()=>{if(history.length>1&&location.hash)history.back();else location.hash=''};

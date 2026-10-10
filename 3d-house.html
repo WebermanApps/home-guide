@@ -2828,7 +2828,7 @@ const R=window.__ROOMS,cam=window.__cam,ctl=window.__ctl;const LV=[['basement','
 const isGar=r=>/garage/i.test(r.name);const items=[];
 const ul=document.getElementById('gotoL'),gb=document.getElementById('gotoB'),gt=document.getElementById('gotoT'),box=document.getElementById('goto');
 function buildList(){if(items.length)return;
-for(const[l,n]of LV){items.push({t:'lv',l,n});Object.entries(R).filter(([id,r])=>l=='garages'?isGar(r):(r.level==l&&!isGar(r))).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([id,r])=>items.push({t:'rm',id,n:r.name,l:r.level}))}
+for(const[l,n]of LV){items.push({t:'lv',l,n});Object.entries(R).filter(([id,r])=>l=='garages'?isGar(r):(r.level==l&&!isGar(r))).sort((a,b)=>{const k=s=>String(s).toLowerCase().replace(/^[\s\d\W_]+/,'').replace(/^(the|a|an)\s+/,'');return k(a[1].name).localeCompare(k(b[1].name),undefined,{numeric:true})||a[0].localeCompare(b[0])}).forEach(([id,r])=>items.push({t:'rm',id,n:r.name,l:r.level}))}
 ul.innerHTML=items.map((it,i)=>`<li role="option" data-i="${i}" class="${it.t}">${it.t=='lv'?it.n:`${it.n}<small>${it.id}</small>`}</li>`).join('');}
 let kb=-1;const open=v=>{if(v)buildList();box.classList.toggle('open',v);gb.setAttribute('aria-expanded',v);if(v){kb=Math.max(0,items.findIndex(x=>x.n+(x.id||'')==gt.dataset.k));mark();ul.focus({preventScroll:true})}};
 const mark=()=>{ul.querySelectorAll('li').forEach((li,i)=>li.classList.toggle('kb',i==kb));const li=ul.children[kb];li&&li.scrollIntoView({block:'nearest'})};
