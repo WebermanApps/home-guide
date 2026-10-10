@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8">
+<!doctype html><html lang="en"><head><meta name="robots" content="noindex,nofollow"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Moschouris Residence · 3D View</title>
 <style>
@@ -2826,9 +2826,9 @@ pad.querySelectorAll('button').forEach(b=>b.classList.add('mw-hover'));setMode('
 (function(){const KEYV={'117':'kitchen','110':'foyer','123':'vestibule','108':'stair','112':'greatroom','118':'dining','121':'living','122':'lanai','105':'primarybed','102':'primarybath','104':'closet','114':'powder114','115':'powder115','116':'mudroom','120':'pantry','103':'office','201':'natia','204':'natiabath','202':'natiawic','206':'fos','208':'aris','210':'jackjill','203':'laundry','205':'hall','209':'boyswic','213':'shoeden','004':'bsmtliving','008':'wine','012':'gym','002':'familysuite','005':'bsmtbath','013':'lockerroom','010':'mech'};
 const R=window.__ROOMS,cam=window.__cam,ctl=window.__ctl;const LV=[['basement','Basement'],['first','First Floor'],['second','Second Floor'],['garages','Garages']];
 const isGar=r=>/garage/i.test(r.name);const items=[];
-function buildList(){if(items.length)return;const ul=document.getElementById('gotoL');
-for(const[l,n]of LV){items.push({t:'lv',l,n});Object.entries(R).filter(([id,r])=>l=='garages'?isGar(r):(r.level==l&&!isGar(r))).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([id,r])=>items.push({t:'rm',id,n:r.name,l:r.level}))}
 const ul=document.getElementById('gotoL'),gb=document.getElementById('gotoB'),gt=document.getElementById('gotoT'),box=document.getElementById('goto');
+function buildList(){if(items.length)return;
+for(const[l,n]of LV){items.push({t:'lv',l,n});Object.entries(R).filter(([id,r])=>l=='garages'?isGar(r):(r.level==l&&!isGar(r))).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([id,r])=>items.push({t:'rm',id,n:r.name,l:r.level}))}
 ul.innerHTML=items.map((it,i)=>`<li role="option" data-i="${i}" class="${it.t}">${it.t=='lv'?it.n:`${it.n}<small>${it.id}</small>`}</li>`).join('');}
 let kb=-1;const open=v=>{if(v)buildList();box.classList.toggle('open',v);gb.setAttribute('aria-expanded',v);if(v){kb=Math.max(0,items.findIndex(x=>x.n+(x.id||'')==gt.dataset.k));mark();ul.focus({preventScroll:true})}};
 const mark=()=>{ul.querySelectorAll('li').forEach((li,i)=>li.classList.toggle('kb',i==kb));const li=ul.children[kb];li&&li.scrollIntoView({block:'nearest'})};
